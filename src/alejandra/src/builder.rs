@@ -56,31 +56,33 @@ fn build_step(
 
     match step {
         crate::builder::Step::Comment(text) => {
-            let mut lines: Vec<String> =
+            let lines: Vec<String> =
                 text.lines().map(|line| line.trim_end().to_string()).collect();
 
-            lines = lines
-                .iter()
-                .enumerate()
-                .map(|(index, line)| {
-                    if index == 0 || line.is_empty() {
-                        line.to_string()
-                    } else {
-                        format!(
-                            "{0:<1$}{2}",
-                            "",
-                            2 * build_ctx.indentation,
-                            line,
-                        )
-                    }
-                })
-                .collect();
+            let comment: String =
+                if lines.len() == 3 && lines[0] == "/*" && lines[2] == "*/" {
+                    lines.concat()
+                } else {
+                    lines
+                        .iter()
+                        .enumerate()
+                        .map(|(index, line)| {
+                            if index == 0 || line.is_empty() {
+                                line.to_string()
+                            } else {
+                                format!(
+                                    "{0:<1$}{2}",
+                                    "",
+                                    2 * build_ctx.indentation,
+                                    line,
+                                )
+                            }
+                        })
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                };
 
-            add_token(
-                builder,
-                rnix::SyntaxKind::TOKEN_COMMENT,
-                &lines.join("\n"),
-            );
+            add_token(builder, rnix::SyntaxKind::TOKEN_COMMENT, &comment);
         }
         crate::builder::Step::Dedent => {
             build_ctx.indentation -= 1;

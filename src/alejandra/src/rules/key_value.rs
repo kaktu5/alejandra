@@ -84,8 +84,22 @@ pub(crate) fn rule(
     let mut dedent = false;
     steps.push_back(crate::builder::Step::Format(child_equal));
 
+    // `key = /*comment*/ value`
+    let inline_comment = comments_before.len() == 1
+        && comments_before.front().map_or(false, |step| {
+            matches!(step, crate::builder::Step::Comment(content) if {
+                let is_cstyle = content.starts_with("/*") && content.ends_with("*/");
+                let line_count = content.split('\n').count();
+                is_cstyle && line_count == 3
+            })
+        });
+
     if vertical {
-        if !comments_before.is_empty() || !comments_after.is_empty() {
+        if inline_comment {
+            steps.push_back(crate::builder::Step::Whitespace);
+            steps.push_back(comments_before.pop_front().unwrap());
+            steps.push_back(crate::builder::Step::Whitespace);
+        } else if !comments_before.is_empty() || !comments_after.is_empty() {
             dedent = true;
             steps.push_back(crate::builder::Step::Indent);
             steps.push_back(crate::builder::Step::NewLine);
